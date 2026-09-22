@@ -1,0 +1,55 @@
+/* TEKO V2 — Día 2: tokens base
+   Importar este archivo una sola vez en el entrypoint (main.tsx / index.css) */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --color-ink: #252326;
+  --color-surface: #E9DDC9;
+  --color-accent: #7951D8;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --shadow-hard: 4px 4px 0 0 var(--color-ink);
+  --shadow-hard-sm: 2px 2px 0 0 var(--color-ink);
+  --shadow-hard-accent: 4px 4px 0 0 var(--color-accent);
+}
+
+/* Geometría: sin esquinas redondeadas en ningún elemento del sistema */
+* {
+  border-radius: 0;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Macro-tipografía: títulos, números grandes de dashboard */
+h1, h2, h3, h4,
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+/* Micro-tipografía: metadatos, badges, timestamps, labels */
+.label, .meta, .mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+}
+
+/* Foco visible obligatorio (sección 22 de la especificación) —
+   nunca solo un cambio de color de fondo */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-hard-accent);
+}
