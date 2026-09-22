@@ -5,6 +5,12 @@ import { Select } from './components/ui/Select'
 import { Badge } from './components/ui/Badge'
 import { Avatar } from './components/ui/Avatar'
 
+import { supabase } from './lib/supabase';
+
+supabase.from('teams').select('*').then(({ data, error }) => {
+  console.log({ data, error });
+});
+
 function App() {
   const [name, setName] = useState('')
 
