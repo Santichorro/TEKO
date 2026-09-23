@@ -12,6 +12,11 @@ import Resetpasswordpage from './pages/Resetpasswordpage'
 import { Acceptinvitationpage } from './pages/Acceptinvitationpage'
 import { Teampage } from './pages/Teampage'
 import { Projectspage } from './pages/Projectspage'
+import { Createprojectpage } from './pages/Createprojectpage'
+import { Projectdetailpage } from './pages/Projectdetailpage'
+import { Editprojectpage } from './pages/Editprojectpage'
+import { Projectstatuspage } from './pages/Projectstatuspage' 
+
 
 function DashboardPreview() {
   const [name, setName] = useState('')
@@ -102,6 +107,43 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/proyectos/nuevo"
+        element={
+          <ProtectedRoute>
+            <Createprojectpage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/proyectos/:id"
+        element={
+          <ProtectedRoute>
+            <Projectdetailpage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/proyectos/:id/editar"
+        element={
+          <ProtectedRoute>
+            <Editprojectpage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/proyectos/:id/estado"
+        element={
+          <ProtectedRoute>
+            <Projectstatuspage />
+          </ProtectedRoute>
+        }
+      />
+
     </Routes>
   )
 }

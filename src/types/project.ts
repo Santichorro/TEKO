@@ -36,3 +36,15 @@ export interface ProjectWithLeader extends Project {
   } | null
   member_count: number
 }
+
+export interface ProjectMemberWithProfile {
+  user_id: string
+  role: ProjectMemberRole
+  joined_at: string
+  profile: {
+    id: string
+    name: string
+    email: string
+    avatar_url: string | null
+  }
+}
