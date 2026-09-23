@@ -1,17 +1,17 @@
 import { useState } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { Button } from './components/ui/Button'
 import { Input } from './components/ui/Input'
 import { Select } from './components/ui/Select'
 import { Badge } from './components/ui/Badge'
 import { Avatar } from './components/ui/Avatar'
+import { ProtectedRoute, PublicOnlyRoute } from './components/ui/Protectedroute'
+import Loginpage from './pages/Loginpage'
+import Registerpage from './pages/Registerpage'
+import Resetpasswordpage from './pages/Resetpasswordpage'
 
-import { supabase } from './lib/supabase';
-
-supabase.from('teams').select('*').then(({ data, error }) => {
-  console.log({ data, error });
-});
-
-function App() {
+// Tu página de prueba del Día 2 — la dejamos como "Dashboard" provisional
+function DashboardPreview() {
   const [name, setName] = useState('')
 
   return (
@@ -49,6 +49,43 @@ function App() {
         </div>
       </div>
     </main>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      {/* Públicas */}
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <Loginpage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicOnlyRoute>
+            <Registerpage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route path="/reset-password" element={<Resetpasswordpage />} />
+
+      {/* Protegidas */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPreview />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   )
 }
 
