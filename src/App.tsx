@@ -9,8 +9,10 @@ import { ProtectedRoute, PublicOnlyRoute } from './components/ui/Protectedroute'
 import Loginpage from './pages/Loginpage'
 import Registerpage from './pages/Registerpage'
 import Resetpasswordpage from './pages/Resetpasswordpage'
+import { Acceptinvitationpage } from './pages/Acceptinvitationpage'
+import { Teampage } from './pages/Teampage'
+import { Projectspage } from './pages/Projectspage'
 
-// Tu página de prueba del Día 2 — la dejamos como "Dashboard" provisional
 function DashboardPreview() {
   const [name, setName] = useState('')
 
@@ -57,7 +59,6 @@ function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-      {/* Públicas */}
       <Route
         path="/login"
         element={
@@ -75,13 +76,29 @@ function App() {
         }
       />
       <Route path="/reset-password" element={<Resetpasswordpage />} />
+      <Route path="/invitaciones/aceptar" element={<Acceptinvitationpage />} />
 
-      {/* Protegidas */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
             <DashboardPreview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/equipo"
+        element={
+          <ProtectedRoute>
+            <Teampage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/proyectos"
+        element={
+          <ProtectedRoute>
+            <Projectspage />
           </ProtectedRoute>
         }
       />

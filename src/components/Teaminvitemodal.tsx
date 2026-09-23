@@ -6,10 +6,8 @@ import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 
 /**
- * No conozco la API exacta de tus componentes Modal y Select del
- * Día 2 (props de apertura/cierre, forma de las opciones). Asumí:
- * - Modal: <Modal open={bool} onClose={fn}>{children}</Modal>
- * - Select: <Select value={} onChange={fn}><option>...</option></Select>
+ * No conozco la API exacta de tu componente Select del Día 2. Asumí:
+ * <Select value={} onChange={fn}><option>...</option></Select>
  * Ajusta si tu API real es distinta.
  */
 const INVITABLE_ROLES: TeamRole[] = ['admin', 'leader', 'member', 'observer'];
@@ -67,9 +65,7 @@ export function Teaminvitemodal({ teamId, open, onClose, onInvited }: Teaminvite
   }
 
   return (
-    <Modal open={open} onClose={handleClose}>
-      <h2>Invitar miembro</h2>
-
+    <Modal open={open} onClose={handleClose} title="Invitar miembro">
       {!inviteLink ? (
         <form onSubmit={handleSubmit} className="teko-invite-modal__form">
           <label>
@@ -83,16 +79,13 @@ export function Teaminvitemodal({ teamId, open, onClose, onInvited }: Teaminvite
             />
           </label>
 
-          <label>
-            Rol
-            <Select value={role} onChange={(e: any) => setRole(e.target.value as TeamRole)} options={[]}>
-              {INVITABLE_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </Select>
-          </label>
+          <Select
+            label="Rol"
+            placeholder="Selecciona un rol"
+            value={role}
+            onChange={(e: any) => setRole(e.target.value as TeamRole)}
+            options={INVITABLE_ROLES.map((r) => ({ value: r, label: r }))}
+          />
 
           {error && <p className="teko-invite-modal__error">{error}</p>}
 

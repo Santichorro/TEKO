@@ -226,3 +226,28 @@ export async function revokeInvitation(invitationId: string): Promise<void> {
     throw new Error(`No se pudo cancelar la invitación: ${error.message}`);
   }
 }
+
+export interface InvitationPreview {
+  team_name: string;
+  role: TeamRole;
+  email: string;
+  expires_at: string;
+  accepted_at: string | null;
+}
+
+export async function getInvitationPreview(token: string): Promise<InvitationPreview> {
+  const { data, error } = await supabase.rpc('get_invitation_preview', { p_token: token });
+  if (error) throw new Error(`No se pudo verificar la invitación: ${error.message}`);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error('Invitación no encontrada.');
+  if (row.accepted_at) throw new Error('Esta invitación ya fue utilizada.');
+  if (new Date(row.expires_at) < new Date()) throw new Error('Esta invitación expiró.');
+  return row as InvitationPreview;
+}
+
+/** Devuelve el team_id del equipo al que se unió. */
+export async function acceptInvitation(token: string): Promise<string> {
+  const { data, error } = await supabase.rpc('accept_invitation', { p_token: token });
+  if (error) throw new Error(error.message);
+  return data as string;
+}

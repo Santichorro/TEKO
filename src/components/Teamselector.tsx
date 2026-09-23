@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useTeams } from '../../context/Teamscontext';
+import { useTeams } from '../context/Teamscontext';
 
 /**
  * No conozco la API exacta de tu componente Dropdown del sistema visual
