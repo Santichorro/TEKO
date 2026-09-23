@@ -21,6 +21,20 @@ export interface TeamWithRole extends Team {
   role: TeamRole;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url: string | null;
+}
+
+export interface TeamMemberWithProfile {
+  user_id: string;
+  role: TeamRole;
+  joined_at: string;
+  profile: Profile;
+}
+
 /**
  * Crea un equipo nuevo y agrega automáticamente al usuario creador
  * como miembro con rol 'owner'.
@@ -79,4 +93,136 @@ export async function getUserTeams(userId: string): Promise<TeamWithRole[]> {
     ...row.teams,
     role: row.role as TeamRole,
   }));
+}
+
+/**
+ * Devuelve los miembros de un equipo con su perfil (nombre, email,
+ * avatar) para mostrarlos en la lista de miembros (paso 5).
+ */
+export async function getTeamMembers(teamId: string): Promise<TeamMemberWithProfile[]> {
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('user_id, role, joined_at, profile:profiles(id, name, email, avatar_url)')
+    .eq('team_id', teamId)
+    .order('joined_at', { ascending: true });
+
+  if (error) {
+    throw new Error(`No se pudieron cargar los miembros: ${error.message}`);
+  }
+
+  return (data ?? []).map((row: any) => ({
+    user_id: row.user_id,
+    role: row.role as TeamRole,
+    joined_at: row.joined_at,
+    profile: row.profile,
+  }));
+}
+
+export interface Invitation {
+  id: string;
+  team_id: string;
+  project_id: string | null;
+  email: string;
+  role: TeamRole;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+const INVITATION_EXPIRY_DAYS = 7;
+
+/**
+ * El token en claro solo existe en memoria del navegador durante
+ * la creación (para armar el link de invitación). En la base de
+ * datos siempre se guarda su hash SHA-256 (token_hash), tal como
+ * pide la especificación: "los tokens de invitación se almacenan
+ * como hash".
+ */
+async function hashToken(token: string): Promise<string> {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+export interface CreateInvitationResult {
+  invitation: Invitation;
+  /** Token en claro — úsalo para armar el link de invitación. No se puede recuperar después. */
+  token: string;
+}
+
+/**
+ * Crea una invitación al equipo. No envía correo (fuera de alcance
+ * del MVP sin backend propio) — devuelve el token en claro una sola
+ * vez para que quien invita copie/comparta el link manualmente.
+ */
+export async function createInvitation(
+  teamId: string,
+  email: string,
+  role: TeamRole
+): Promise<CreateInvitationResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error('El correo no puede estar vacío.');
+  }
+  if (role === 'owner') {
+    throw new Error('No se puede invitar directamente con rol Owner.');
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('invitations')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('email', normalizedEmail)
+    .is('accepted_at', null)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`No se pudo verificar invitaciones existentes: ${existingError.message}`);
+  }
+  if (existing) {
+    throw new Error('Ya existe una invitación pendiente para este correo en este equipo.');
+  }
+
+  const token = crypto.randomUUID();
+  const tokenHash = await hashToken(token);
+  const expiresAt = new Date(
+    Date.now() + INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data: invitation, error } = await supabase
+    .from('invitations')
+    .insert({ team_id: teamId, email: normalizedEmail, role, token_hash: tokenHash, expires_at: expiresAt })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`No se pudo crear la invitación: ${error.message}`);
+  }
+
+  return { invitation: invitation as Invitation, token };
+}
+
+/** Invitaciones pendientes (sin aceptar) de un equipo, para mostrarlas en la página de equipo. */
+export async function getPendingInvitations(teamId: string): Promise<Invitation[]> {
+  const { data, error } = await supabase
+    .from('invitations')
+    .select('*')
+    .eq('team_id', teamId)
+    .is('accepted_at', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`No se pudieron cargar las invitaciones: ${error.message}`);
+  }
+
+  return data as Invitation[];
+}
+
+export async function revokeInvitation(invitationId: string): Promise<void> {
+  const { error } = await supabase.from('invitations').delete().eq('id', invitationId);
+  if (error) {
+    throw new Error(`No se pudo cancelar la invitación: ${error.message}`);
+  }
 }
