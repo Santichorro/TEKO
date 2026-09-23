@@ -10,6 +10,7 @@ import { fetchProjectDetail } from '../lib/queries/projects'
 import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
 import { Projectmemberslist } from '../components/ui/Projectmemberslist'
+import { Taskslist } from '../components/ui/Taskslist'
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   planning: 'Planificación',
@@ -144,6 +145,12 @@ export function Projectdetailpage() {
             <Projectmemberslist projectId={project.id} />
         </Card>
       </div>
+
+      <div className="mt-6">
+        <h2 className="label opacity-60 mb-4">Tareas</h2>
+        <Taskslist projectId={project.id} />
+      </div>
+      
     </main>
   )
 }
