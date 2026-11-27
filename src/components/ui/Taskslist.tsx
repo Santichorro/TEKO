@@ -12,11 +12,16 @@ import type { TaskListItem, TaskPriority } from '../../types/task'
 import { Labelbadge } from '../labels/Labelbadge'
 import { useProjectDependencies } from '../../hooks/useProjectDependencies'
 import { getBlockers } from '../../lib/queries/dependencies'
+import { computeBlockedIds } from '../../lib/blocked'
+import { compareTasks, filterAndSort, type TaskFilters } from '../../lib/taskFilters'
 
 interface TaskslistProps {
   projectId: string
   /** Oculta "Crear tarea" a quien no tiene permiso (Observador) */
   canCreate?: boolean
+  /** Filtros de la barra (Día 12); sin filtros muestra todo */
+  filters?: TaskFilters
+  userId?: string
 }
 
 const PRIORITY_VARIANT: Record<TaskPriority, 'accent' | 'outline'> = {
@@ -26,7 +31,7 @@ const PRIORITY_VARIANT: Record<TaskPriority, 'accent' | 'outline'> = {
   low: 'outline',
 }
 
-export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
+export function Taskslist({ projectId, canCreate = true, filters, userId }: TaskslistProps) {
   const { data: tasks = [], isLoading, error } = useQuery({
     queryKey: ['tasks', projectId],
     queryFn: () => fetchProjectTasks(projectId),
@@ -54,7 +59,17 @@ export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
     )
   }
 
-  const grouped = groupTasksByStatus(tasks)
+  const visible = filters
+    ? filterAndSort(tasks, filters, { userId, blockedIds: computeBlockedIds(tasks, dependencies) })
+    : tasks
+  if (visible.length === 0) {
+    return <EmptyState title="Nada coincide" description="Ninguna tarea cumple con los filtros." />
+  }
+  const grouped = groupTasksByStatus(visible)
+  if (filters) {
+    const compare = compareTasks(filters.sort)
+    for (const list of Object.values(grouped)) list.sort(compare)
+  }
 
   return (
     <div className="flex flex-col gap-8">

@@ -14,6 +14,7 @@ import { Editprojectpage } from './pages/Editprojectpage'
 import { Projectstatuspage } from './pages/Projectstatuspage'
 import { Createtaskpage } from './pages/Createtaskpage'
 import { Taskdetailpage } from './pages/Taskdetailpage'
+import { Taskspage } from './pages/Taskspage'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<Dashboardpage />} />
+        <Route path="/tareas" element={<Taskspage />} />
         <Route path="/equipo" element={<Teampage />} />
         <Route path="/proyectos" element={<Projectspage />} />
         <Route path="/proyectos/nuevo" element={<Createprojectpage />} />

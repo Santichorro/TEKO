@@ -22,6 +22,8 @@ import { fetchProjectTasks } from '../../lib/queries/tasks'
 import { canEditTask } from '../../lib/Teampermissions'
 import { useProjectDependencies } from '../../hooks/useProjectDependencies'
 import { getBlockers } from '../../lib/queries/dependencies'
+import { computeBlockedIds } from '../../lib/blocked'
+import { matchesFilters, type TaskFilters } from '../../lib/taskFilters'
 import type { TeamRole } from '../../services/Teamservice'
 import type { TaskListItem } from '../../types/task'
 
@@ -31,6 +33,8 @@ interface KanbanboardProps {
   projectId: string
   role: TeamRole
   userId: string | undefined
+  /** Filtros de la barra (Día 12). El orden del tablero siempre es el manual (posición). */
+  filters?: TaskFilters
 }
 
 /** Posición nueva = punto medio entre vecinos (evita renumerar toda la columna) */
@@ -41,7 +45,7 @@ function positionBetween(prev: number | undefined, next: number | undefined): nu
   return 1
 }
 
-export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
+export function Kanbanboard({ projectId, role, userId, filters }: KanbanboardProps) {
   const queryClient = useQueryClient()
 
   const columnsQuery = useQuery({
@@ -54,10 +58,17 @@ export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
   })
 
   const columns = useMemo(() => columnsQuery.data ?? [], [columnsQuery.data])
-  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
-  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks])
+  const allTasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const { data: dependencies = [] } = useProjectDependencies(projectId)
-  const blockersOf = (taskId: string) => getBlockers(taskId, dependencies, taskById).map((t) => t.title)
+  // Con filtros, el tablero muestra solo las coincidencias (los bloqueos se calculan con todas)
+  const tasks = useMemo(() => {
+    if (!filters) return allTasks
+    const blockedIds = computeBlockedIds(allTasks, dependencies)
+    return allTasks.filter((t) => matchesFilters(t, filters, { userId, blockedIds }))
+  }, [allTasks, dependencies, filters, userId])
+  const allById = useMemo(() => new Map(allTasks.map((t) => [t.id, t])), [allTasks])
+  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks])
+  const blockersOf = (taskId: string) => getBlockers(taskId, dependencies, allById).map((t) => t.title)
 
   // Orden que viene del servidor: por columna, por posición
   const serverItems = useMemo<Items>(() => {

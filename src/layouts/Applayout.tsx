@@ -11,6 +11,7 @@ import { useTeams } from '../context/Teamscontext'
 const NAV_ITEMS = [
   { label: 'Inicio', path: '/dashboard' },
   { label: 'Proyectos', path: '/proyectos' },
+  { label: 'Tareas', path: '/tareas' },
   { label: 'Equipo', path: '/equipo' },
 ]
 

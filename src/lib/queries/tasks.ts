@@ -1,7 +1,7 @@
 import { supabase } from '../supabase'
 import type { TaskListItem, TaskPriority, TaskStatus, TaskWithAssignee } from '../../types/task'
 
-const TASK_FIELDS = `
+export const TASK_FIELDS = `
   id, project_id, column_id, parent_task_id, title, description, status, priority,
   created_by, assigned_to, start_date, due_date, blocked_reason, position,
   created_at, updated_at, completed_at,
@@ -213,4 +213,41 @@ export function groupTasksByStatus<T extends TaskWithAssignee>(tasks: T[]): Reco
     groups[task.status].push(task)
   }
   return groups
+}
+
+export type TeamTaskItem = Omit<TaskListItem, 'subtasks'> & {
+  project: { id: string; name: string; status: string }
+}
+
+/** Tareas principales de todos los proyectos visibles de un equipo, con proyecto y etiquetas */
+export async function fetchTeamTaskList(teamId: string): Promise<TeamTaskItem[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(`
+      ${TASK_FIELDS},
+      task_labels ( label:labels ( id, name, color ) ),
+      project:projects!inner ( id, name, status, team_id )
+    `)
+    .eq('project.team_id', teamId)
+    .is('parent_task_id', null)
+
+  if (error) throw new Error(`No se pudieron cargar las tareas: ${error.message}`)
+  return (data ?? []) as unknown as TeamTaskItem[]
+}
+
+/** Reprogramar (calendario). Si la nueva fecha queda antes del inicio, se quita el inicio. */
+export async function rescheduleTask(
+  taskId: string,
+  dueDate: string | null,
+  startDate: string | null
+): Promise<void> {
+  const patch: { due_date: string | null; start_date?: null } = { due_date: dueDate }
+  if (dueDate && startDate && startDate > dueDate) patch.start_date = null
+
+  const { error } = await supabase.from('tasks').update(patch).eq('id', taskId).select('id').single()
+  if (error) {
+    throw new Error(
+      error.code === 'PGRST116' ? 'No tienes permiso para reprogramar esta tarea.' : `No se pudo reprogramar: ${error.message}`
+    )
+  }
 }

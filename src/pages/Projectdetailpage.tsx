@@ -11,6 +11,17 @@ import { Tabs } from '../components/ui/Tabs'
 import { Kanbanboard } from '../components/kanban/Kanbanboard'
 import { Projectactivity } from '../components/collab/Projectactivity'
 import { useProjectTasksRealtime } from '../hooks/useProjectTasksRealtime'
+import { useQuery } from '@tanstack/react-query'
+import { Taskfilterbar } from '../components/filters/Taskfilterbar'
+import { Taskcalendar } from '../components/calendar/Taskcalendar'
+import { useTaskFilters } from '../hooks/useTaskFilters'
+import { useProjectDependencies } from '../hooks/useProjectDependencies'
+import { computeBlockedIds } from '../lib/blocked'
+import { fetchTeamLabels } from '../lib/queries/labels'
+import { fetchProjectTasks } from '../lib/queries/tasks'
+import { filterAndSort } from '../lib/taskFilters'
+import { canEditTask } from '../lib/Teampermissions'
+import { getTeamMembers } from '../services/Teamservice'
 import { fetchProjectDetail } from '../lib/queries/projects'
 import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
@@ -43,6 +54,12 @@ export function Projectdetailpage() {
   const { currentTeam } = useTeams()
   const { user } = useAuth()
   useProjectTasksRealtime(id)
+  const { filters, setFilters, clearFilters } = useTaskFilters()
+  const teamId = currentTeam?.id
+  const tasksQuery = useQuery({ queryKey: ['tasks', id], queryFn: () => fetchProjectTasks(id!), enabled: !!id })
+  const { data: dependencies = [] } = useProjectDependencies(id ?? '')
+  const membersQuery = useQuery({ queryKey: ['team-members', teamId], queryFn: () => getTeamMembers(teamId!), enabled: !!teamId })
+  const labelsQuery = useQuery({ queryKey: ['labels', teamId], queryFn: () => fetchTeamLabels(teamId!), enabled: !!teamId })
 
   const [project, setProject] = useState<ProjectWithLeader | null>(null)
   const [loading, setLoading] = useState(true)
@@ -166,18 +183,43 @@ export function Projectdetailpage() {
             </Link>
           )}
         </div>
+        <div className="mb-4">
+          <Taskfilterbar
+            filters={filters}
+            onChange={setFilters}
+            onClear={clearFilters}
+            members={(membersQuery.data ?? []).map((m) => ({ id: m.user_id, name: m.profile.name }))}
+            labels={(labelsQuery.data ?? []).map((l) => ({ id: l.id, name: l.name }))}
+          />
+        </div>
         <Tabs
           defaultValue="kanban"
           tabs={[
             {
               value: 'kanban',
               label: 'Kanban',
-              content: <Kanbanboard projectId={project.id} role={currentTeam.role} userId={user?.id} />,
+              content: <Kanbanboard projectId={project.id} role={currentTeam.role} userId={user?.id} filters={filters} />,
             },
             {
               value: 'lista',
               label: 'Lista',
-              content: <Taskslist projectId={project.id} canCreate={false} />,
+              content: <Taskslist projectId={project.id} canCreate={false} filters={filters} userId={user?.id} />,
+            },
+            {
+              value: 'calendario',
+              label: 'Calendario',
+              content: (() => {
+                const all = tasksQuery.data ?? []
+                const blockedIds = computeBlockedIds(all, dependencies)
+                return (
+                  <Taskcalendar
+                    tasks={filterAndSort(all, filters, { userId: user?.id, blockedIds })}
+                    queryKey={['tasks', project.id]}
+                    blockedIds={blockedIds}
+                    canEdit={(t) => canEditTask(currentTeam.role, user?.id, t)}
+                  />
+                )
+              })(),
             },
             {
               value: 'actividad',
