@@ -6,6 +6,9 @@ import { Avatar } from '../components/ui/Avatar'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/Emptystate'
 import { useTeams } from '../context/Teamscontext'
+import { useAuth } from '../context/Authcontext'
+import { Tabs } from '../components/ui/Tabs'
+import { Kanbanboard } from '../components/kanban/Kanbanboard'
 import { fetchProjectDetail } from '../lib/queries/projects'
 import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
@@ -36,6 +39,7 @@ export function Projectdetailpage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { currentTeam } = useTeams()
+  const { user } = useAuth()
 
   const [project, setProject] = useState<ProjectWithLeader | null>(null)
   const [loading, setLoading] = useState(true)
@@ -148,9 +152,32 @@ export function Projectdetailpage() {
         </Card>
       </div>
 
-      <div className="mt-6">
-        <h2 className="label opacity-60 mb-4">Tareas</h2>
-        <Taskslist projectId={project.id} canCreate={hasPermission(currentTeam.role, 'manage_tasks')} />
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="label opacity-60">Tareas</h2>
+          {hasPermission(currentTeam.role, 'manage_tasks') && (
+            <Link to={`/proyectos/${project.id}/tareas/nueva`}>
+              <Button variant="accent" size="sm">
+                Crear tarea
+              </Button>
+            </Link>
+          )}
+        </div>
+        <Tabs
+          defaultValue="kanban"
+          tabs={[
+            {
+              value: 'kanban',
+              label: 'Kanban',
+              content: <Kanbanboard projectId={project.id} role={currentTeam.role} userId={user?.id} />,
+            },
+            {
+              value: 'lista',
+              label: 'Lista',
+              content: <Taskslist projectId={project.id} canCreate={false} />,
+            },
+          ]}
+        />
       </div>
       
     </div>
