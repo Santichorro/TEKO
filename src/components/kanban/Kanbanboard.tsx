@@ -20,7 +20,6 @@ import { Kanbancardbody } from './Kanbancard'
 import { fetchProjectColumns, moveTask } from '../../lib/queries/columns'
 import { fetchProjectTasks } from '../../lib/queries/tasks'
 import { canEditTask } from '../../lib/Teampermissions'
-import { useProjectTasksRealtime } from '../../hooks/useProjectTasksRealtime'
 import { useProjectDependencies } from '../../hooks/useProjectDependencies'
 import { getBlockers } from '../../lib/queries/dependencies'
 import type { TeamRole } from '../../services/Teamservice'
@@ -44,7 +43,6 @@ function positionBetween(prev: number | undefined, next: number | undefined): nu
 
 export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
   const queryClient = useQueryClient()
-  useProjectTasksRealtime(projectId)
 
   const columnsQuery = useQuery({
     queryKey: ['columns', projectId],

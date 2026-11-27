@@ -9,6 +9,8 @@ import { useTeams } from '../context/Teamscontext'
 import { useAuth } from '../context/Authcontext'
 import { Tabs } from '../components/ui/Tabs'
 import { Kanbanboard } from '../components/kanban/Kanbanboard'
+import { Projectactivity } from '../components/collab/Projectactivity'
+import { useProjectTasksRealtime } from '../hooks/useProjectTasksRealtime'
 import { fetchProjectDetail } from '../lib/queries/projects'
 import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
@@ -40,6 +42,7 @@ export function Projectdetailpage() {
   const navigate = useNavigate()
   const { currentTeam } = useTeams()
   const { user } = useAuth()
+  useProjectTasksRealtime(id)
 
   const [project, setProject] = useState<ProjectWithLeader | null>(null)
   const [loading, setLoading] = useState(true)
@@ -175,6 +178,11 @@ export function Projectdetailpage() {
               value: 'lista',
               label: 'Lista',
               content: <Taskslist projectId={project.id} canCreate={false} />,
+            },
+            {
+              value: 'actividad',
+              label: 'Actividad',
+              content: <Projectactivity projectId={project.id} />,
             },
           ]}
         />

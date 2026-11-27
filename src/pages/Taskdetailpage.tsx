@@ -11,6 +11,10 @@ import { Taskform } from '../components/tasks/Taskform'
 import { Tasklabels } from '../components/tasks/Tasklabels'
 import { Subtasklist } from '../components/tasks/Subtasklist'
 import { Taskdependencies } from '../components/tasks/Taskdependencies'
+import { Taskcomments } from '../components/collab/Taskcomments'
+import { Activityfeed } from '../components/collab/Activityfeed'
+import { fetchTaskActivity } from '../lib/queries/activity'
+import { useTaskRealtime } from '../hooks/useTaskRealtime'
 import { useAuth } from '../context/Authcontext'
 import { useTeams } from '../context/Teamscontext'
 import { formatDate, isOverdue } from '../lib/dates'
@@ -40,6 +44,13 @@ export function Taskdetailpage() {
     queryFn: () => fetchProjectDetail(currentTeam!.id, projectId!),
     enabled: !!currentTeam && !!projectId,
   })
+
+  const activityQuery = useQuery({
+    queryKey: ['activity', 'task', taskId],
+    queryFn: () => fetchTaskActivity(taskId!),
+    enabled: !!taskId,
+  })
+  useTaskRealtime(taskId)
 
   const membersQuery = useQuery({
     queryKey: ['project-members', projectId],
@@ -189,6 +200,18 @@ export function Taskdetailpage() {
                     projectId={projectId}
                     canManage={hasPermission(currentTeam.role, 'manage_dependencies')}
                   />
+                </Card>
+              )}
+
+              <Card>
+                <h2 className="label opacity-60 mb-4">Comentarios</h2>
+                <Taskcomments taskId={task.id} role={currentTeam.role} userId={user?.id} />
+              </Card>
+
+              {!task.parent_task_id && (
+                <Card>
+                  <h2 className="label opacity-60 mb-4">Actividad</h2>
+                  <Activityfeed entries={activityQuery.data ?? []} />
                 </Card>
               )}
             </div>

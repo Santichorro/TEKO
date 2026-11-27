@@ -31,6 +31,11 @@ export function useProjectTasksRealtime(projectId: string | undefined) {
       )
       // Dependencias: no se pueden filtrar por proyecto; RLS limita lo que llega
       .on('postgres_changes', { event: '*', schema: 'public', table: 'task_dependencies' }, refresh)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'activity_logs', filter: `project_id=eq.${projectId}` },
+        () => queryClient.invalidateQueries({ queryKey: ['activity', 'project', projectId] })
+      )
       .subscribe()
 
     return () => {

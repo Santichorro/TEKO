@@ -30,3 +30,16 @@ export function isOverdue(value: string | null | undefined): boolean {
   today.setHours(0, 0, 0, 0)
   return parseDate(value) < today
 }
+
+const relative = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+
+/** "hace 5 minutos", "ayer", "hace 3 días"; más de una semana → fecha corta */
+export function formatRelative(iso: string): string {
+  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000)
+  const abs = Math.abs(seconds)
+  if (abs < 45) return 'hace un momento'
+  if (abs < 3600) return relative.format(Math.round(seconds / 60), 'minute')
+  if (abs < 86400) return relative.format(Math.round(seconds / 3600), 'hour')
+  if (abs < 604800) return relative.format(Math.round(seconds / 86400), 'day')
+  return formatDate(iso)
+}
