@@ -29,7 +29,9 @@ export async function moveTask(taskId: string, columnId: string, position: numbe
     throw new Error(
       error.code === 'PGRST116'
         ? 'No tienes permiso para mover esta tarea.'
-        : `No se pudo mover la tarea: ${error.message}`
+        : error.code === 'P0001'
+          ? error.message // regla de la base de datos (p. ej. tarea bloqueada), ya en español
+          : `No se pudo mover la tarea: ${error.message}`
     )
   }
 }

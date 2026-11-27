@@ -15,6 +15,7 @@ export type TeamPermission =
   | 'manage_tasks'         // crear/editar/mover tareas
   | 'assign_tasks'         // asignar o reasignar responsable
   | 'delete_tasks'         // eliminar tareas
+  | 'manage_dependencies'  // agregar/quitar dependencias entre tareas
   | 'comment'              // comentar en tareas
   | 'view';                // acceso de solo lectura
 
@@ -35,6 +36,7 @@ const ROLE_PERMISSIONS: Record<TeamRole, TeamPermission[]> = {
     'manage_tasks',
     'assign_tasks',
     'delete_tasks',
+    'manage_dependencies',
     'comment',
     'view',
   ],
@@ -47,10 +49,11 @@ const ROLE_PERMISSIONS: Record<TeamRole, TeamPermission[]> = {
     'manage_tasks',
     'assign_tasks',
     'delete_tasks',
+    'manage_dependencies',
     'comment',
     'view',
   ],
-  leader: ['manage_projects', 'manage_tasks', 'assign_tasks', 'delete_tasks', 'comment', 'view'],
+  leader: ['manage_projects', 'manage_tasks', 'assign_tasks', 'delete_tasks', 'manage_dependencies', 'comment', 'view'],
   member: ['manage_tasks', 'comment', 'view'],
   observer: ['view'],
 };

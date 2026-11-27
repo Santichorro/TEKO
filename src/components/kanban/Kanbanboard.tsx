@@ -21,6 +21,8 @@ import { fetchProjectColumns, moveTask } from '../../lib/queries/columns'
 import { fetchProjectTasks } from '../../lib/queries/tasks'
 import { canEditTask } from '../../lib/Teampermissions'
 import { useProjectTasksRealtime } from '../../hooks/useProjectTasksRealtime'
+import { useProjectDependencies } from '../../hooks/useProjectDependencies'
+import { getBlockers } from '../../lib/queries/dependencies'
 import type { TeamRole } from '../../services/Teamservice'
 import type { TaskListItem } from '../../types/task'
 
@@ -56,6 +58,8 @@ export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
   const columns = useMemo(() => columnsQuery.data ?? [], [columnsQuery.data])
   const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data])
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks])
+  const { data: dependencies = [] } = useProjectDependencies(projectId)
+  const blockersOf = (taskId: string) => getBlockers(taskId, dependencies, taskById).map((t) => t.title)
 
   // Orden que viene del servidor: por columna, por posición
   const serverItems = useMemo<Items>(() => {
@@ -255,11 +259,14 @@ export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
               tasks={(items[column.id] ?? []).map((id) => taskById.get(id)).filter((t): t is TaskListItem => !!t)}
               canDragTask={canDragTask}
               shouldIgnoreClick={() => Date.now() - lastDropAt.current < 250}
+              blockersOf={blockersOf}
             />
           ))}
         </div>
 
-        <DragOverlay>{activeTask ? <Kanbancardbody task={activeTask} dragging /> : null}</DragOverlay>
+        <DragOverlay>
+          {activeTask ? <Kanbancardbody task={activeTask} blockers={blockersOf(activeTask.id)} dragging /> : null}
+        </DragOverlay>
       </DndContext>
     </div>
   )

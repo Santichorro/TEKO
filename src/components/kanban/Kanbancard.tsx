@@ -14,10 +14,20 @@ interface KanbancardProps {
   canDrag: boolean
   /** true justo después de soltar: evita que el "click" final abra la tarea */
   shouldIgnoreClick: () => boolean
+  /** Títulos de las tareas pendientes que bloquean a esta */
+  blockers: string[]
 }
 
 /** Contenido visual de la tarjeta (se reutiliza en el DragOverlay) */
-export function Kanbancardbody({ task, dragging = false }: { task: TaskListItem; dragging?: boolean }) {
+export function Kanbancardbody({
+  task,
+  blockers = [],
+  dragging = false,
+}: {
+  task: TaskListItem
+  blockers?: string[]
+  dragging?: boolean
+}) {
   const overdue = task.status !== 'completed' && isOverdue(task.due_date)
   const subDone = task.subtasks.filter((s) => s.status === 'completed').length
   const highPriority = task.priority === 'urgent' || task.priority === 'high'
@@ -34,6 +44,12 @@ export function Kanbancardbody({ task, dragging = false }: { task: TaskListItem;
         </span>
         {highPriority && <Badge variant="accent">{TASK_PRIORITY_LABEL[task.priority]}</Badge>}
       </div>
+
+      {blockers.length > 0 && (
+        <p className="label bg-ink text-surface px-2 py-1" title={`Depende de: ${blockers.join(', ')}`}>
+          Bloqueada · {blockers.length === 1 ? blockers[0] : `${blockers.length} tareas`}
+        </p>
+      )}
 
       {task.task_labels.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -63,7 +79,7 @@ export function Kanbancardbody({ task, dragging = false }: { task: TaskListItem;
   )
 }
 
-export function Kanbancard({ task, projectId, canDrag, shouldIgnoreClick }: KanbancardProps) {
+export function Kanbancard({ task, projectId, canDrag, shouldIgnoreClick, blockers }: KanbancardProps) {
   const navigate = useNavigate()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -85,10 +101,10 @@ export function Kanbancard({ task, projectId, canDrag, shouldIgnoreClick }: Kanb
       onClick={() => {
         if (!shouldIgnoreClick()) navigate(`/proyectos/${projectId}/tareas/${task.id}`)
       }}
-      aria-label={`${task.title}. ${canDrag ? 'Espacio para mover, Enter para abrir.' : 'Enter para abrir.'}`}
+      aria-label={`${task.title}.${blockers.length ? ` Bloqueada por ${blockers.join(', ')}.` : ''} ${canDrag ? 'Espacio para mover, Enter para abrir.' : 'Enter para abrir.'}`}
       tabIndex={0}
     >
-      <Kanbancardbody task={task} />
+      <Kanbancardbody task={task} blockers={blockers} />
     </li>
   )
 }

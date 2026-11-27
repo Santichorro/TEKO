@@ -10,9 +10,10 @@ interface KanbancolumnProps {
   projectId: string
   canDragTask: (task: TaskListItem) => boolean
   shouldIgnoreClick: () => boolean
+  blockersOf: (taskId: string) => string[]
 }
 
-export function Kanbancolumn({ column, tasks, projectId, canDragTask, shouldIgnoreClick }: KanbancolumnProps) {
+export function Kanbancolumn({ column, tasks, projectId, canDragTask, shouldIgnoreClick, blockersOf }: KanbancolumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   return (
@@ -34,6 +35,7 @@ export function Kanbancolumn({ column, tasks, projectId, canDragTask, shouldIgno
               projectId={projectId}
               canDrag={canDragTask(task)}
               shouldIgnoreClick={shouldIgnoreClick}
+              blockers={blockersOf(task.id)}
             />
           ))}
           {tasks.length === 0 && <li className="label opacity-40 text-center py-6 list-none">Suelta aquí</li>}

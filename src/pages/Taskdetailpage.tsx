@@ -10,6 +10,7 @@ import { EmptyState } from '../components/ui/Emptystate'
 import { Taskform } from '../components/tasks/Taskform'
 import { Tasklabels } from '../components/tasks/Tasklabels'
 import { Subtasklist } from '../components/tasks/Subtasklist'
+import { Taskdependencies } from '../components/tasks/Taskdependencies'
 import { useAuth } from '../context/Authcontext'
 import { useTeams } from '../context/Teamscontext'
 import { formatDate, isOverdue } from '../lib/dates'
@@ -177,6 +178,17 @@ export function Taskdetailpage() {
                 <Card>
                   <h2 className="label opacity-60 mb-4">Subtareas</h2>
                   <Subtasklist parent={task} role={currentTeam.role} userId={user?.id} />
+                </Card>
+              )}
+
+              {!task.parent_task_id && (
+                <Card>
+                  <h2 className="label opacity-60 mb-4">Dependencias</h2>
+                  <Taskdependencies
+                    taskId={task.id}
+                    projectId={projectId}
+                    canManage={hasPermission(currentTeam.role, 'manage_dependencies')}
+                  />
                 </Card>
               )}
             </div>

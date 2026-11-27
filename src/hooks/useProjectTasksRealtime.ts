@@ -18,6 +18,7 @@ export function useProjectTasksRealtime(projectId: string | undefined) {
       clearTimeout(timer)
       timer = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['tasks', projectId] })
+        queryClient.invalidateQueries({ queryKey: ['dependencies', projectId] })
       }, 150)
     }
 
@@ -28,6 +29,8 @@ export function useProjectTasksRealtime(projectId: string | undefined) {
         { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` },
         refresh
       )
+      // Dependencias: no se pueden filtrar por proyecto; RLS limita lo que llega
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_dependencies' }, refresh)
       .subscribe()
 
     return () => {

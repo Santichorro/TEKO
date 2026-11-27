@@ -10,6 +10,8 @@ import { formatDate, isOverdue } from '../../lib/dates'
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL, TASK_STATUS_ORDER } from '../../lib/labels'
 import type { TaskListItem, TaskPriority } from '../../types/task'
 import { Labelbadge } from '../labels/Labelbadge'
+import { useProjectDependencies } from '../../hooks/useProjectDependencies'
+import { getBlockers } from '../../lib/queries/dependencies'
 
 interface TaskslistProps {
   projectId: string
@@ -29,6 +31,9 @@ export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
     queryKey: ['tasks', projectId],
     queryFn: () => fetchProjectTasks(projectId),
   })
+
+  const { data: dependencies = [] } = useProjectDependencies(projectId)
+  const tasksById = new Map(tasks.map((t) => [t.id, t]))
 
   if (isLoading) return <p className="label opacity-60">Cargando tareas...</p>
   if (error) return <p className="label text-accent">{error.message}</p>
@@ -66,7 +71,12 @@ export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
             </h3>
             <div className="flex flex-col gap-3">
               {group.map((task) => (
-                <TaskRow key={task.id} task={task} projectId={projectId} />
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  projectId={projectId}
+                  blockers={getBlockers(task.id, dependencies, tasksById).map((t) => t.title)}
+                />
               ))}
             </div>
           </section>
@@ -76,7 +86,7 @@ export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
   )
 }
 
-function TaskRow({ task, projectId }: { task: TaskListItem; projectId: string }) {
+function TaskRow({ task, projectId, blockers }: { task: TaskListItem; projectId: string; blockers: string[] }) {
   const overdue = task.status !== 'completed' && isOverdue(task.due_date)
   const subDone = task.subtasks.filter((s) => s.status === 'completed').length
 
@@ -88,6 +98,11 @@ function TaskRow({ task, projectId }: { task: TaskListItem; projectId: string })
           <span className={`truncate ${task.status === 'completed' ? 'line-through opacity-60' : ''}`}>
             {task.title}
           </span>
+          {blockers.length > 0 && (
+            <Badge variant="solid" title={`Depende de: ${blockers.join(', ')}`}>
+              Bloqueada
+            </Badge>
+          )}
           <span className="hidden md:flex items-center gap-1 shrink-0">
             {task.task_labels.slice(0, 3).map(({ label }) => (
               <Labelbadge key={label.id} name={label.name} color={label.color} />
