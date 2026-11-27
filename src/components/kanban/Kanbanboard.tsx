@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   closestCorners,
@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type Announcements,
+  type KeyboardCoordinateGetter,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -74,11 +75,37 @@ export function Kanbanboard({ projectId, role, userId }: KanbanboardProps) {
   const items = localItems ?? serverItems
   const lastDropAt = useRef(0)
 
+  // Las flechas ←/→ saltan a la columna vecina; ↑/↓ reordenan dentro de la columna.
+  // (El comportamiento por defecto de dnd-kit no cambia bien de contenedor con teclado.)
+  const itemsRef = useRef(items)
+  const columnOrderRef = useRef<string[]>([])
+  useLayoutEffect(() => {
+    itemsRef.current = items
+    columnOrderRef.current = columns.map((c) => c.id)
+  }, [items, columns])
+
+  const keyboardCoordinates: KeyboardCoordinateGetter = (event, args) => {
+    if (event.code === 'ArrowRight' || event.code === 'ArrowLeft') {
+      event.preventDefault()
+      const { active, droppableRects, collisionRect } = args.context
+      if (!active || !collisionRect) return undefined
+      const order = columnOrderRef.current
+      const current = Object.keys(itemsRef.current).find((col) => itemsRef.current[col].includes(String(active.id)))
+      const index = current ? order.indexOf(current) : -1
+      const targetId = order[index + (event.code === 'ArrowRight' ? 1 : -1)]
+      const rect = targetId ? droppableRects.get(targetId) : undefined
+      if (!rect) return undefined
+      // Al principio de la columna destino
+      return { x: rect.left + 8, y: rect.top + 8 }
+    }
+    return sortableKeyboardCoordinates(event, args)
+  }
+
   const canDragTask = (task: TaskListItem) => canEditTask(role, userId, task)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: keyboardCoordinates })
   )
 
   const moveMutation = useMutation({
