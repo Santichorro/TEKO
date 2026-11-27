@@ -33,17 +33,13 @@ wrangler.jsonc     configuración del despliegue en Cloudflare
 
 ## Supabase
 
-1. **SQL Editor** → ejecutar, en orden, los archivos de `supabase/migrations/`.
+1. Proyecto: **TEKO V2** (`vouaahbsoiwwaptwbyuv`, us-east-1). Las migraciones de `supabase/migrations/`
+   ya están aplicadas. En un proyecto nuevo se ejecutan en orden en el **SQL Editor**.
 2. **Authentication → URL Configuration**
    - Site URL: la URL de producción (p. ej. `https://teko.<tu-subdominio>.workers.dev`).
    - Redirect URLs: `http://localhost:5173/**` y `https://<url-de-produccion>/**`.
      Sin esto fallan la recuperación de contraseña y el link de confirmación de correo.
-3. El esquema de la base de datos no está versionado todavía. Para guardarlo en el repo:
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref <ref-del-proyecto>
-   npx supabase db dump --schema public -f supabase/schema.sql
-   ```
+3. Todo cambio de base de datos va como un archivo nuevo en `supabase/migrations/` (nunca editar uno ya aplicado).
 
 ## Despliegue (Cloudflare Workers)
 
