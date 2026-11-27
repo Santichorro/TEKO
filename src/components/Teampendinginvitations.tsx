@@ -3,6 +3,9 @@ import type { Invitation } from '../services/Teamservice';
 import { getPendingInvitations, revokeInvitation } from '../services/Teamservice';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
+import { formatDate } from '../lib/dates';
 
 interface TeampendinginvitationsProps {
   teamId: string;
@@ -40,28 +43,34 @@ export function Teampendinginvitations({ teamId, refreshKey }: Teampendinginvita
     }
   }
 
-  if (loading) return <p>Cargando invitaciones…</p>;
-  if (error) return <p className="teko-pending-invitations__error">{error}</p>;
+  if (loading) return <p className="label opacity-60">Cargando invitaciones…</p>;
+  if (error) return <p className="label text-accent">{error}</p>;
   if (invitations.length === 0) return null;
 
   return (
-    <div className="teko-pending-invitations">
-      <h3>Invitaciones pendientes</h3>
-      <ul>
+    <section className="flex flex-col gap-4">
+      <h2 className="label opacity-60">Invitaciones pendientes</h2>
+      <Card padding="sm">
+      <ul className="flex flex-col divide-y-2 divide-ink/10">
         {invitations.map((inv) => {
           const expired = new Date(inv.expires_at) < new Date();
           return (
-            <li key={inv.id} className="teko-pending-invitations__item">
-              <span>{inv.email}</span>
-              <Badge>{inv.role}</Badge>
-              {expired && <Badge>expirada</Badge>}
-              <Button variant="secondary" onClick={() => handleRevoke(inv.id)}>
+            <li key={inv.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-1 last:pb-1">
+              <span className="text-sm flex-1 min-w-0 truncate">{inv.email}</span>
+              <Badge>{TEAM_ROLE_LABEL[inv.role]}</Badge>
+              {expired ? (
+                <Badge variant="solid">Expirada</Badge>
+              ) : (
+                <span className="label opacity-60">Vence {formatDate(inv.expires_at)}</span>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => handleRevoke(inv.id)}>
                 Cancelar
               </Button>
             </li>
           );
         })}
       </ul>
-    </div>
+      </Card>
+    </section>
   );
 }

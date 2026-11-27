@@ -3,106 +3,121 @@ import { useTeams } from '../context/Teamscontext';
 import { useAuth } from '../context/Authcontext';
 import { createTeam } from '../services/Teamservice';
 import { hasPermission } from '../lib/Teampermissions';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
 import { Teammemberslist } from '../components/Teammemberslist';
 import { Teaminvitemodal } from '../components/Teaminvitemodal';
 import { Teampendinginvitations } from '../components/Teampendinginvitations';
 
-/**
- * Asumo que Button, Badge y Card viven en src/components/ui/ (siguiendo
- * el patrón de Protectedroute.tsx del Día 4). Ajusta las rutas si tu
- * estructura es distinta.
- */
-export function Teampage() {
+function CreateTeamForm({ onCreated }: { onCreated: (teamId: string) => void }) {
   const { user } = useAuth();
-  const { teams, currentTeam, loading, error, refreshTeams } = useTeams();
+  const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [invitationsRefreshKey, setInvitationsRefreshKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleCreateTeam(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-
     setCreating(true);
-    setCreateError(null);
+    setError(null);
     try {
-      await createTeam(newTeamName, user.id);
-      setNewTeamName('');
-      await refreshTeams();
+      const team = await createTeam(name, user.id);
+      setName('');
+      onCreated(team.id);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'No se pudo crear el equipo.');
+      setError(err instanceof Error ? err.message : 'No se pudo crear el equipo.');
     } finally {
       setCreating(false);
     }
   }
 
-  if (loading) {
-    return <div className="teko-team-page__loading">Cargando equipo…</div>;
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Input
+        label="Nombre del equipo"
+        placeholder="Ej. Estudio Lozano"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        error={error ?? undefined}
+        required
+      />
+      <div>
+        <Button type="submit" variant="accent" disabled={creating}>
+          {creating ? 'Creando…' : 'Crear equipo'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+export function Teampage() {
+  const { teams, currentTeam, loading, error, refreshTeams, switchTeam } = useTeams();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [invitationsRefreshKey, setInvitationsRefreshKey] = useState(0);
+
+  async function handleCreated(teamId: string) {
+    await refreshTeams();
+    switchTeam(teamId);
+    setShowCreate(false);
   }
 
-  if (error) {
-    return <div className="teko-team-page__error">{error}</div>;
-  }
+  if (loading) return <p className="label opacity-60">Cargando equipo…</p>;
+  if (error) return <p className="label text-accent">{error}</p>;
 
   // Estado vacío: el usuario todavía no pertenece a ningún equipo.
   if (teams.length === 0) {
     return (
-      <Card className="teko-team-page__empty">
-        <h2>Todavía no tienes un equipo</h2>
-        <p>Crea tu primer equipo para empezar a organizar proyectos y tareas.</p>
-        <form onSubmit={handleCreateTeam} className="teko-team-page__create-form">
-          <input
-            type="text"
-            placeholder="Nombre del equipo"
-            value={newTeamName}
-            onChange={(e) => setNewTeamName(e.target.value)}
-            required
-          />
-          <Button type="submit" disabled={creating}>
-            {creating ? 'Creando…' : 'Crear equipo'}
-          </Button>
-        </form>
-        {createError && <p className="teko-team-page__create-error">{createError}</p>}
+      <Card className="max-w-lg">
+        <h1 className="font-display text-2xl mb-2">Todavía no tienes un equipo</h1>
+        <p className="text-sm opacity-70 mb-6">
+          Crea tu primer equipo para empezar a organizar proyectos y tareas.
+        </p>
+        <CreateTeamForm onCreated={handleCreated} />
       </Card>
     );
   }
 
-  if (!currentTeam) {
-    // No debería pasar (hay teams pero ninguno seleccionado), pero cubrimos el caso.
-    return <div>Selecciona un equipo.</div>;
-  }
+  if (!currentTeam) return <p className="label opacity-60">Selecciona un equipo.</p>;
 
   const canInvite = hasPermission(currentTeam.role, 'invite_members');
-  const canManageSettings = hasPermission(currentTeam.role, 'manage_team_settings');
 
   return (
-    <div className="teko-team-page">
-      <header className="teko-team-page__header">
-        <div>
-          <h1>{currentTeam.name}</h1>
-          <Badge>{currentTeam.role}</Badge>
+    <div className="flex flex-col gap-8 max-w-4xl">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h1 className="font-display text-3xl">{currentTeam.name}</h1>
+          <Badge variant="accent">{TEAM_ROLE_LABEL[currentTeam.role]}</Badge>
         </div>
-        {canManageSettings && (
-          <Button variant="secondary">Configuración del equipo</Button>
-        )}
+        <Button variant="secondary" onClick={() => setShowCreate((v) => !v)}>
+          {showCreate ? 'Cancelar' : 'Crear otro equipo'}
+        </Button>
       </header>
 
-      <section className="teko-team-page__members">
-        <div className="teko-team-page__members-header">
-          <h2>Miembros</h2>
-          {canInvite && <Button onClick={() => setInviteOpen(true)}>Invitar miembro</Button>}
+      {showCreate && (
+        <Card className="max-w-lg">
+          <CreateTeamForm onCreated={handleCreated} />
+        </Card>
+      )}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="label opacity-60">Miembros</h2>
+          {canInvite && (
+            <Button variant="accent" size="sm" onClick={() => setInviteOpen(true)}>
+              Invitar miembro
+            </Button>
+          )}
         </div>
         <Teammemberslist />
-
-        {canInvite && (
-          <Teampendinginvitations teamId={currentTeam.id} refreshKey={invitationsRefreshKey} />
-        )}
       </section>
+
+      {canInvite && (
+        <Teampendinginvitations teamId={currentTeam.id} refreshKey={invitationsRefreshKey} />
+      )}
 
       {canInvite && (
         <Teaminvitemodal

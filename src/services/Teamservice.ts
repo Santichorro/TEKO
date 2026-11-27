@@ -42,10 +42,19 @@ export interface TeamMemberWithProfile {
  * No se usa una sola inserción con default porque team_members necesita
  * el id del equipo recién creado (team_id es FK hacia teams.id).
  */
-export async function createTeam(name: string, userId: string): Promise<Team> {
+export async function createTeam(name: string, userId: string): Promise<{ id: string }> {
   const trimmedName = name.trim();
   if (!trimmedName) {
     throw new Error('El nombre del equipo no puede estar vacío.');
+  }
+
+  // Camino preferido: función create_team en Postgres (una sola transacción).
+  // Ver supabase/migrations/20261127000000_rpc_crear_equipo_y_proyecto.sql
+  const { data: rpcTeamId, error: rpcError } = await supabase.rpc('create_team', { p_name: trimmedName });
+  if (!rpcError) return { id: rpcTeamId as string };
+  // PGRST202 = la función aún no existe en Supabase → se usa el método anterior
+  if (rpcError.code !== 'PGRST202') {
+    throw new Error(`No se pudo crear el equipo: ${rpcError.message}`);
   }
 
   // 1. Crear el equipo
@@ -71,7 +80,7 @@ export async function createTeam(name: string, userId: string): Promise<Team> {
     throw new Error(`No se pudo asignar el rol de Owner: ${memberError.message}`);
   }
 
-  return team as Team;
+  return { id: (team as Team).id };
 }
 
 /**
@@ -89,9 +98,10 @@ export async function getUserTeams(userId: string): Promise<TeamWithRole[]> {
     throw new Error(`No se pudieron cargar los equipos: ${error.message}`);
   }
 
-  return (data ?? []).map((row: any) => ({
+  const rows = (data ?? []) as unknown as { role: TeamRole; teams: Team }[];
+  return rows.map((row) => ({
     ...row.teams,
-    role: row.role as TeamRole,
+    role: row.role,
   }));
 }
 
@@ -110,12 +120,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMemberWithProf
     throw new Error(`No se pudieron cargar los miembros: ${error.message}`);
   }
 
-  return (data ?? []).map((row: any) => ({
-    user_id: row.user_id,
-    role: row.role as TeamRole,
-    joined_at: row.joined_at,
-    profile: row.profile,
-  }));
+  return (data ?? []) as unknown as TeamMemberWithProfile[];
 }
 
 export interface Invitation {

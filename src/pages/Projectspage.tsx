@@ -10,7 +10,9 @@ import { Select } from '../components/ui/Select'
 import { EmptyState } from '../components/ui/Emptystate'
 import { useTeams } from '../context/Teamscontext'
 import { fetchTeamProjects } from '../lib/queries/projects'
+import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
+import { formatDate } from '../lib/dates'
 
 const MAIN_STATUSES: ProjectStatus[] = ['planning', 'active', 'paused', 'completed']
 const ARCHIVE_STATUSES: ProjectStatus[] = ['archived', 'template']
@@ -38,33 +40,37 @@ export function Projectspage() {
 
   if (teamLoading) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Cargando equipos...</p>
-      </main>
+      </div>
     )
   }
 
   if (!currentTeam) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <EmptyState
           title="Sin equipo seleccionado"
           description="Crea o selecciona un equipo para ver sus proyectos."
         />
-      </main>
+      </div>
     )
   }
 
+  const canCreate = hasPermission(currentTeam.role, 'manage_projects')
+
   return (
-    <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+    <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl mb-1">Proyectos</h1>
           <p className="label opacity-60">{currentTeam.name}</p>
         </div>
-        <Link to="/proyectos/nuevo">
-          <Button variant="accent">Crear proyecto</Button>
-        </Link>
+        {canCreate && (
+          <Link to="/proyectos/nuevo">
+            <Button variant="accent">Crear proyecto</Button>
+          </Link>
+        )}
       </div>
 
       <Tabs
@@ -80,7 +86,7 @@ export function Projectspage() {
                 statuses={MAIN_STATUSES}
                 emptyTitle="Sin proyectos todavía"
                 emptyDescription="Crea el primer proyecto de este equipo."
-                showCreateAction
+                showCreateAction={canCreate}
               />
             ),
           },
@@ -99,7 +105,7 @@ export function Projectspage() {
           },
         ]}
       />
-    </main>
+    </div>
   )
 }
 
@@ -200,7 +206,7 @@ function ProjectCard({ project }: { project: ProjectWithLeader }) {
           </div>
           {project.due_date && (
             <span className="label opacity-60">
-              {new Date(project.due_date).toLocaleDateString()}
+              {formatDate(project.due_date)}
             </span>
           )}
         </div>

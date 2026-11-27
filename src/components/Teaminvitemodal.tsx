@@ -4,12 +4,9 @@ import { createInvitation } from '../services/Teamservice';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
+import { Input } from '../components/ui/Input';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
 
-/**
- * No conozco la API exacta de tu componente Select del Día 2. Asumí:
- * <Select value={} onChange={fn}><option>...</option></Select>
- * Ajusta si tu API real es distinta.
- */
 const INVITABLE_ROLES: TeamRole[] = ['admin', 'leader', 'member', 'observer'];
 
 interface TeaminvitemodalProps {
@@ -46,8 +43,6 @@ export function Teaminvitemodal({ teamId, open, onClose, onInvited }: Teaminvite
     setError(null);
     try {
       const { token } = await createInvitation(teamId, email, role);
-      // El link real depende de cómo montes la ruta de aceptación (paso 7).
-      // Ajusta /invitaciones/aceptar a la ruta que definas.
       const link = `${window.location.origin}/invitaciones/aceptar?token=${token}`;
       setInviteLink(link);
       onInvited?.();
@@ -67,37 +62,37 @@ export function Teaminvitemodal({ teamId, open, onClose, onInvited }: Teaminvite
   return (
     <Modal open={open} onClose={handleClose} title="Invitar miembro">
       {!inviteLink ? (
-        <form onSubmit={handleSubmit} className="teko-invite-modal__form">
-          <label>
-            Correo
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="persona@correo.com"
-            />
-          </label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <Input
+            label="Correo"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="persona@correo.com"
+          />
 
           <Select
             label="Rol"
             placeholder="Selecciona un rol"
             value={role}
-            onChange={(e: any) => setRole(e.target.value as TeamRole)}
-            options={INVITABLE_ROLES.map((r) => ({ value: r, label: r }))}
+            onChange={(e) => setRole(e.target.value as TeamRole)}
+            options={INVITABLE_ROLES.map((r) => ({ value: r, label: TEAM_ROLE_LABEL[r] }))}
           />
 
-          {error && <p className="teko-invite-modal__error">{error}</p>}
+          {error && <p className="label text-accent">{error}</p>}
 
           <Button type="submit" disabled={submitting}>
             {submitting ? 'Creando…' : 'Crear invitación'}
           </Button>
         </form>
       ) : (
-        <div className="teko-invite-modal__result">
-          <p>Invitación creada. Comparte este link (expira en 7 días):</p>
-          <div className="teko-invite-modal__link-row">
-            <input type="text" readOnly value={inviteLink} />
+        <div className="flex flex-col gap-4">
+          <p className="text-sm">Invitación creada. Comparte este link (expira en 7 días):</p>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 min-w-0">
+              <Input label="Link de invitación" readOnly value={inviteLink} onFocus={(e) => e.target.select()} />
+            </div>
             <Button type="button" onClick={handleCopy}>
               {copied ? 'Copiado' : 'Copiar'}
             </Button>

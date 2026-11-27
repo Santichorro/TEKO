@@ -8,6 +8,7 @@ import { useTeams } from '../context/Teamscontext'
 import { getTeamMembers } from '../services/Teamservice'
 import type { TeamMemberWithProfile } from '../services/Teamservice'
 import { createProject } from '../lib/queries/projects'
+import { hasPermission } from '../lib/Teampermissions'
 
 export function Createprojectpage() {
   const navigate = useNavigate()
@@ -36,6 +37,14 @@ export function Createprojectpage() {
 
   if (!currentTeam) return null
 
+  if (!hasPermission(currentTeam.role, 'manage_projects')) {
+    return (
+      <div>
+        <p className="label opacity-60">No tienes permiso para crear proyectos en este equipo.</p>
+      </div>
+    )
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!leaderId) {
@@ -63,7 +72,7 @@ export function Createprojectpage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+    <div>
       <h1 className="font-display text-3xl mb-1">Crear proyecto</h1>
       <p className="label opacity-60 mb-10">{currentTeam.name}</p>
 
@@ -120,6 +129,6 @@ export function Createprojectpage() {
           </div>
         </form>
       </Card>
-    </main>
+    </div>
   )
 }

@@ -13,6 +13,8 @@ export type TeamPermission =
   | 'invite_members'       // crear invitaciones
   | 'manage_projects'      // crear/editar/archivar proyectos del equipo
   | 'manage_tasks'         // crear/editar/mover tareas
+  | 'assign_tasks'         // asignar o reasignar responsable
+  | 'delete_tasks'         // eliminar tareas
   | 'comment'              // comentar en tareas
   | 'view';                // acceso de solo lectura
 
@@ -31,6 +33,8 @@ const ROLE_PERMISSIONS: Record<TeamRole, TeamPermission[]> = {
     'invite_members',
     'manage_projects',
     'manage_tasks',
+    'assign_tasks',
+    'delete_tasks',
     'comment',
     'view',
   ],
@@ -41,10 +45,12 @@ const ROLE_PERMISSIONS: Record<TeamRole, TeamPermission[]> = {
     'invite_members',
     'manage_projects',
     'manage_tasks',
+    'assign_tasks',
+    'delete_tasks',
     'comment',
     'view',
   ],
-  leader: ['manage_projects', 'manage_tasks', 'comment', 'view'],
+  leader: ['manage_projects', 'manage_tasks', 'assign_tasks', 'delete_tasks', 'comment', 'view'],
   member: ['manage_tasks', 'comment', 'view'],
   observer: ['view'],
 };
@@ -89,4 +95,20 @@ export function canRemoveMember(actorRole: TeamRole, targetRole: TeamRole): bool
   if (targetRole === 'owner') return false;
   if (!hasPermission(actorRole, 'remove_members')) return false;
   return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];
+}
+
+/**
+ * Matriz de la especificación: Miembro edita tareas "con alcance limitado".
+ * Aquí: Owner/Admin/Líder editan cualquier tarea; Miembro solo las suyas
+ * (asignadas a él o creadas por él); Observador ninguna.
+ * La regla definitiva debe repetirse en RLS (Día 13).
+ */
+export function canEditTask(
+  role: TeamRole,
+  userId: string | undefined,
+  task: { assigned_to: string | null; created_by: string }
+): boolean {
+  if (!hasPermission(role, 'manage_tasks')) return false;
+  if (hasPermission(role, 'assign_tasks')) return true;
+  return !!userId && (task.assigned_to === userId || task.created_by === userId);
 }

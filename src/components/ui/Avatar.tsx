@@ -32,7 +32,6 @@ export function Avatar({ name, src, size = 'md', className = '', ...props }: Ava
       {...props}
     >
       {src ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
         <img src={src} alt={name} className="h-full w-full object-cover" />
       ) : (
         <span aria-hidden="true">{getInitials(name)}</span>

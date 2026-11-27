@@ -70,25 +70,25 @@ export function Projectstatuspage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Cargando proyecto...</p>
-      </main>
+      </div>
     )
   }
 
   if (!project) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Proyecto no encontrado.</p>
-      </main>
+      </div>
     )
   }
 
   if (!hasPermission(currentTeam.role, 'manage_projects')) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">No tienes permiso para cambiar el estado de este proyecto.</p>
-      </main>
+      </div>
     )
   }
 
@@ -110,7 +110,7 @@ export function Projectstatuspage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+    <div>
       <h1 className="font-display text-3xl mb-1">Cambiar estado</h1>
       <p className="label opacity-60 mb-10">{project.name}</p>
 
@@ -155,6 +155,6 @@ export function Projectstatuspage() {
         confirmLabel={pendingTarget ? ACTION_LABEL[pendingTarget] : 'Confirmar'}
         destructive={pendingTarget === 'archived'}
       />
-    </main>
+    </div>
   )
 }

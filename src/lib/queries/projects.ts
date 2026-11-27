@@ -10,7 +10,7 @@ export async function fetchTeamProjects(
     .from('projects')
     .select(`
       id, team_id, name, description, status, start_date, due_date, visibility, created_at, updated_at,
-      project_members!inner (
+      project_members (
         role,
         profiles ( id, name, avatar_url )
       )
@@ -22,7 +22,8 @@ export async function fetchTeamProjects(
   if (error) throw error
 
   return (data ?? []).map((p) => {
-    const leaderRow = p.project_members.find((m: any) => m.role === 'leader')
+    const members = p.project_members as unknown as { role: string; profiles: unknown }[]
+    const leaderRow = members.find((m) => m.role === 'leader')
     return {
       ...p,
       leader: leaderRow?.profiles ?? null,
@@ -46,13 +47,29 @@ export interface CreateProjectInput {
  * el proyecto para no dejarlo huérfano sin líder — mismo patrón que
  * createTeam en Teamservice.ts.
  */
-export async function createProject(input: CreateProjectInput): Promise<Project> {
+export async function createProject(input: CreateProjectInput): Promise<{ id: string }> {
   const trimmedName = input.name.trim()
   if (!trimmedName) {
     throw new Error('El nombre del proyecto no puede estar vacío.')
   }
   if (input.start_date && input.due_date && input.start_date > input.due_date) {
     throw new Error('La fecha de inicio no puede ser posterior a la fecha límite.')
+  }
+
+  // Camino preferido: función create_project en Postgres (transacción + valida permisos).
+  // Ver supabase/migrations/20261127000000_rpc_crear_equipo_y_proyecto.sql
+  const { data: rpcProjectId, error: rpcError } = await supabase.rpc('create_project', {
+    p_team_id: input.team_id,
+    p_name: trimmedName,
+    p_description: input.description,
+    p_start_date: input.start_date,
+    p_due_date: input.due_date,
+    p_leader_id: input.leader_id,
+  })
+  if (!rpcError) return { id: rpcProjectId as string }
+  // PGRST202 = la función aún no existe en Supabase → se usa el método anterior
+  if (rpcError.code !== 'PGRST202') {
+    throw new Error(`No se pudo crear el proyecto: ${rpcError.message}`)
   }
 
   const { data: project, error: projectError } = await supabase
@@ -82,7 +99,7 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     throw new Error(`No se pudo asignar el líder: ${memberError.message}`)
   }
 
-  return project as Project
+  return { id: (project as Project).id }
 }
 
 /**
@@ -102,6 +119,7 @@ export async function updateProjectStatus(
 
   const { error } = await supabase
     .from('projects')
+    // updated_at también lo pone el trigger set_updated_at; se envía por si aún no está instalado
     .update({ status: nextStatus, updated_at: new Date().toISOString() })
     .eq('id', projectId)
 
@@ -172,12 +190,7 @@ export async function fetchProjectMembers(projectId: string): Promise<ProjectMem
     throw new Error(`No se pudieron cargar los miembros del proyecto: ${error.message}`)
   }
 
-  return (data ?? []).map((row: any) => ({
-    user_id: row.user_id,
-    role: row.role as ProjectMemberRole,
-    joined_at: row.joined_at,
-    profile: row.profile,
-  }))
+  return (data ?? []) as unknown as ProjectMemberWithProfile[]
 }
 
 export async function addProjectMember(

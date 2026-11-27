@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/Authcontext.tsx';
 import { loginSchema } from './Authschemas.ts';
+import { getSafeRedirect } from '../lib/redirect';
 
 export default function Loginpage() {
   const { signIn } = useAuth();
@@ -41,8 +42,10 @@ export default function Loginpage() {
       return;
     }
 
-    const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard';
-    navigate(from, { replace: true });
+    const from = (location.state as { from?: { pathname: string; search?: string } } | null)?.from;
+    const target =
+      getSafeRedirect(location.search) ?? (from ? `${from.pathname}${from.search ?? ''}` : '/dashboard');
+    navigate(target, { replace: true });
   }
 
   return (
@@ -89,7 +92,7 @@ export default function Loginpage() {
 
         <p className="label opacity-60 text-center">
           ¿No tienes cuenta?{' '}
-          <Link to="/register" className="underline">
+          <Link to={`/register${location.search}`} className="underline">
             Regístrate
           </Link>
         </p>

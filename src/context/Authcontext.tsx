@@ -12,7 +12,12 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    redirectPath?: string
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -40,15 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  async function signUp(email: string, password: string, name: string) {
-    const { error } = await supabase.auth.signUp({
+  async function signUp(email: string, password: string, name: string, redirectPath = '/dashboard') {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name }, // queda disponible para el trigger que crea el registro en `profiles`
+        // A dónde vuelve el usuario al confirmar el correo (p. ej. la invitación que estaba aceptando)
+        emailRedirectTo: `${window.location.origin}${redirectPath}`,
       },
     });
-    return { error: error?.message ?? null };
+    // Si Supabase exige confirmar el correo, no hay sesión hasta que el usuario haga clic en el link
+    return { error: error?.message ?? null, needsConfirmation: !error && !data.session };
   }
 
   async function signIn(email: string, password: string) {

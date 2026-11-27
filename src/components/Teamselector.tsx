@@ -1,13 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTeams } from '../context/Teamscontext';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
 
-/**
- * No conozco la API exacta de tu componente Dropdown del sistema visual
- * (Día 2), así que este selector está implementado de forma autónoma
- * con su propio manejo de apertura/cierre. Si tu Dropdown expone algo
- * tipo <Dropdown trigger={...}>{items}</Dropdown>, dime su firma y lo
- * adapto para que reutilice ese componente en vez de duplicar lógica.
- */
+/** Selector de equipo para la cabecera del Sidebar (fondo ink). */
 export function Teamselector() {
   const { teams, currentTeam, loading, switchTeam } = useTeams();
   const [open, setOpen] = useState(false);
@@ -19,48 +14,65 @@ export function Teamselector() {
         setOpen(false);
       }
     }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
-  if (loading) {
-    return <div className="teko-team-selector teko-team-selector--loading">Cargando equipos…</div>;
-  }
-
-  if (teams.length === 0) {
-    return <div className="teko-team-selector teko-team-selector--empty">Sin equipos</div>;
-  }
+  if (loading) return <p className="label text-surface/50">Cargando equipos…</p>;
+  if (teams.length === 0) return <p className="label text-surface/50">Sin equipos</p>;
 
   return (
-    <div className="teko-team-selector" ref={containerRef}>
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
-        className="teko-team-selector__trigger"
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        className="w-full flex items-center justify-between gap-2 border-2 border-surface/30 px-3 py-2 text-left hover:border-surface focus-visible:outline-none focus-visible:border-accent"
       >
-        <span className="teko-team-selector__name">{currentTeam?.name ?? 'Selecciona un equipo'}</span>
-        <span className="teko-team-selector__role">{currentTeam?.role}</span>
+        <span className="min-w-0">
+          <span className="block font-display text-sm uppercase truncate">
+            {currentTeam?.name ?? 'Selecciona un equipo'}
+          </span>
+          {currentTeam && (
+            <span className="label text-surface/50">{TEAM_ROLE_LABEL[currentTeam.role]}</span>
+          )}
+        </span>
+        <span aria-hidden="true" className="label">{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
-        <ul className="teko-team-selector__list" role="listbox">
-          {teams.map((team) => (
-            <li key={team.id} role="option" aria-selected={team.id === currentTeam?.id}>
-              <button
-                type="button"
-                className="teko-team-selector__option"
-                onClick={() => {
-                  switchTeam(team.id);
-                  setOpen(false);
-                }}
-              >
-                <span>{team.name}</span>
-                <span className="teko-team-selector__option-role">{team.role}</span>
-              </button>
-            </li>
-          ))}
+        <ul
+          role="listbox"
+          className="absolute left-0 right-0 top-full mt-1 z-20 bg-surface text-ink border-2 border-ink shadow-hard"
+        >
+          {teams.map((team) => {
+            const selected = team.id === currentTeam?.id;
+            return (
+              <li key={team.id} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    switchTeam(team.id);
+                    setOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm ${
+                    selected ? 'bg-accent text-surface' : 'hover:bg-ink/10'
+                  }`}
+                >
+                  <span className="truncate">{team.name}</span>
+                  <span className="label opacity-70">{TEAM_ROLE_LABEL[team.role]}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

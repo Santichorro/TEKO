@@ -1,13 +1,17 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/Authcontext.tsx';
 import { registerSchema } from './Authschemas';
+import { getSafeRedirect } from '../lib/redirect';
 
 export default function Registerpage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = getSafeRedirect(location.search) ?? '/dashboard';
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,7 +36,12 @@ export default function Registerpage() {
     setErrors({});
     setSubmitting(true);
 
-    const { error } = await signUp(result.data.email, result.data.password, result.data.name);
+    const { error, needsConfirmation } = await signUp(
+      result.data.email,
+      result.data.password,
+      result.data.name,
+      redirectTo
+    );
 
     setSubmitting(false);
 
@@ -46,7 +55,29 @@ export default function Registerpage() {
       return;
     }
 
-    navigate('/dashboard', { replace: true });
+    if (needsConfirmation) {
+      setConfirmationSent(true);
+      return;
+    }
+
+    navigate(redirectTo, { replace: true });
+  }
+
+  if (confirmationSent) {
+    return (
+      <main className="min-h-screen bg-surface text-ink flex items-center justify-center p-6">
+        <div className="w-full max-w-sm flex flex-col gap-4">
+          <h1 className="font-display text-3xl">Revisa tu correo</h1>
+          <p className="text-sm opacity-70">
+            Te enviamos un enlace a <strong>{email}</strong> para confirmar tu cuenta. Al abrirlo
+            vuelves a TEKO con la sesión iniciada.
+          </p>
+          <Link to={`/login${location.search}`} className="label underline">
+            Ya la confirmé, iniciar sesión
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -95,7 +126,7 @@ export default function Registerpage() {
 
         <p className="label opacity-60 text-center">
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="underline">
+          <Link to={`/login${location.search}`} className="underline">
             Inicia sesión
           </Link>
         </p>

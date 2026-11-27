@@ -6,6 +6,7 @@ import { getInvitationPreview, acceptInvitation } from '../services/Teamservice'
 import type { InvitationPreview } from '../services/Teamservice';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
 
 export function Acceptinvitationpage() {
   const [searchParams] = useSearchParams();
@@ -46,40 +47,58 @@ export function Acceptinvitationpage() {
     }
   }
 
-  if (loading) return <p>Verificando invitación…</p>;
+  const wrap = (children: React.ReactNode) => (
+    <main className="min-h-screen bg-surface text-ink flex items-center justify-center p-6">
+      <Card className="w-full max-w-md flex flex-col gap-5">{children}</Card>
+    </main>
+  );
+
+  if (loading) return wrap(<p className="label opacity-60">Verificando invitación…</p>);
 
   if (error) {
-    return (
-      <Card className="teko-accept-invitation">
-        <p>{error}</p>
-      </Card>
+    return wrap(
+      <>
+        <h1 className="font-display text-2xl">Invitación no disponible</h1>
+        <p className="text-sm opacity-70">{error}</p>
+        <Link to="/dashboard" className="label underline">
+          Ir a TEKO
+        </Link>
+      </>
     );
   }
 
   if (!preview) return null;
 
-  const redirect = `/invitaciones/aceptar?token=${token}`;
+  const redirect = `/invitaciones/aceptar?token=${encodeURIComponent(token)}`;
+  const roleLabel = TEAM_ROLE_LABEL[preview.role] ?? preview.role;
 
-  return (
-    <Card className="teko-accept-invitation">
-      <h1>Invitación a {preview.team_name}</h1>
-      <p>
-        Te invitaron como <strong>{preview.role}</strong> ({preview.email}).
+  return wrap(
+    <>
+      <div>
+        <p className="label opacity-60 mb-2">Invitación</p>
+        <h1 className="font-display text-3xl">{preview.team_name}</h1>
+      </div>
+      <p className="text-sm">
+        Te invitaron como <strong>{roleLabel}</strong> ({preview.email}).
       </p>
 
       {!user ? (
-        <div className="teko-accept-invitation__auth-actions">
-          <p>Inicia sesión o regístrate con {preview.email} para aceptar.</p>
-          <Button onClick={() => navigate(`/login?redirect=${encodeURIComponent(redirect)}`)}>
-            Iniciar sesión
-          </Button>
-          <Link to={`/registro?redirect=${encodeURIComponent(redirect)}`}>Crear cuenta</Link>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm opacity-70">Inicia sesión o regístrate con {preview.email} para aceptar.</p>
+          <div className="flex gap-3">
+            <Button variant="primary" onClick={() => navigate(`/login?redirect=${encodeURIComponent(redirect)}`)}>
+              Iniciar sesión
+            </Button>
+            <Button variant="secondary" onClick={() => navigate(`/register?redirect=${encodeURIComponent(redirect)}`)}>
+              Crear cuenta
+            </Button>
+          </div>
         </div>
       ) : (
-        <Button onClick={handleAccept} disabled={accepting}>
+        <Button variant="accent" onClick={handleAccept} disabled={accepting}>
           {accepting ? 'Uniéndote…' : `Unirme a ${preview.team_name}`}
         </Button>
       )}
-    </Card>
+    </>
   );
 }

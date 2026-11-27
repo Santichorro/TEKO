@@ -11,6 +11,8 @@ import { hasPermission } from '../lib/Teampermissions'
 import type { ProjectStatus, ProjectWithLeader } from '../types/project'
 import { Projectmemberslist } from '../components/ui/Projectmemberslist'
 import { Taskslist } from '../components/ui/Taskslist'
+import { ProjectProgress } from '../components/tasks/Projectprogress'
+import { formatDate } from '../lib/dates'
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
   planning: 'Planificación',
@@ -53,15 +55,15 @@ export function Projectdetailpage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Cargando proyecto...</p>
-      </main>
+      </div>
     )
   }
 
   if (error || !project) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <EmptyState
           title="Proyecto no encontrado"
           description={error ?? 'Este proyecto no existe o no pertenece a este equipo.'}
@@ -71,14 +73,14 @@ export function Projectdetailpage() {
             </Link>
           }
         />
-      </main>
+      </div>
     )
   }
 
   const canManage = hasPermission(currentTeam.role, 'manage_projects')
 
   return (
-    <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+    <div>
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -123,18 +125,18 @@ export function Projectdetailpage() {
             </div>
             <div>
               <dt className="label opacity-60">Progreso</dt>
-              <dd className="mt-1">— (disponible en el Día 7)</dd>
+              <dd className="mt-1"><ProjectProgress projectId={project.id} /></dd>
             </div>
             <div>
               <dt className="label opacity-60">Fecha de inicio</dt>
               <dd className="mt-1">
-                {project.start_date ? new Date(project.start_date).toLocaleDateString() : '—'}
+                {formatDate(project.start_date)}
               </dd>
             </div>
             <div>
               <dt className="label opacity-60">Fecha límite</dt>
               <dd className="mt-1">
-                {project.due_date ? new Date(project.due_date).toLocaleDateString() : '—'}
+                {formatDate(project.due_date)}
               </dd>
             </div>
           </dl>
@@ -148,9 +150,9 @@ export function Projectdetailpage() {
 
       <div className="mt-6">
         <h2 className="label opacity-60 mb-4">Tareas</h2>
-        <Taskslist projectId={project.id} />
+        <Taskslist projectId={project.id} canCreate={hasPermission(currentTeam.role, 'manage_tasks')} />
       </div>
       
-    </main>
+    </div>
   )
 }

@@ -38,7 +38,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             disabled={disabled}
             aria-invalid={!!error}
             aria-describedby={error ? errorId : hint ? hintId : undefined}
-            defaultValue={props.defaultValue ?? (placeholder ? '' : undefined)}
+            defaultValue={
+              props.value !== undefined ? undefined : (props.defaultValue ?? (placeholder ? '' : undefined))
+            }
             className={`
               w-full appearance-none
               font-sans text-sm text-ink bg-surface

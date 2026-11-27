@@ -6,6 +6,9 @@ import type { TeamMemberWithProfile } from '../services/Teamservice';
 import { canRemoveMember } from '../lib/Teampermissions';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
+import { Avatar } from './ui/Avatar';
+import { Card } from './ui/Card';
+import { TEAM_ROLE_LABEL } from '../lib/labels';
 
 /**
  * El botón "Quitar" queda con un TODO: la función real de expulsar
@@ -41,44 +44,37 @@ export function Teammemberslist() {
   if (!currentTeam) return null;
 
   if (loading) {
-    return <p className="teko-members-list__loading">Cargando miembros…</p>;
+    return <p className="label opacity-60">Cargando miembros…</p>;
   }
 
   if (error) {
-    return <p className="teko-members-list__error">{error}</p>;
+    return <p className="label text-accent">{error}</p>;
   }
 
   return (
-    <ul className="teko-members-list">
+    <Card padding="sm">
+    <ul className="flex flex-col divide-y-2 divide-ink/10">
       {members.map((member) => {
         const isSelf = member.user_id === user?.id;
         const canRemove = !isSelf && canRemoveMember(currentTeam.role, member.role);
 
         return (
-          <li key={member.user_id} className="teko-members-list__item">
-            {member.profile.avatar_url ? (
-              <img
-                src={member.profile.avatar_url}
-                alt=""
-                className="teko-members-list__avatar"
-              />
-            ) : (
-              <div className="teko-members-list__avatar teko-members-list__avatar--placeholder">
-                {member.profile.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+          <li key={member.user_id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-1">
+            <Avatar name={member.profile.name} src={member.profile.avatar_url ?? undefined} />
 
-            <div className="teko-members-list__info">
-              <span className="teko-members-list__name">
-                {member.profile.name} {isSelf && '(tú)'}
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-sm truncate">
+                {member.profile.name} {isSelf && <span className="label opacity-60">(tú)</span>}
               </span>
-              <span className="teko-members-list__email">{member.profile.email}</span>
+              <span className="label opacity-60 truncate normal-case">{member.profile.email}</span>
             </div>
 
-            <Badge>{member.role}</Badge>
+            <Badge variant={member.role === 'owner' ? 'accent' : 'outline'}>
+              {TEAM_ROLE_LABEL[member.role]}
+            </Badge>
 
             {canRemove && (
-              <Button variant="secondary" disabled title="Se conecta en el paso 6">
+              <Button variant="secondary" size="sm" disabled title="Pendiente: quitar miembros">
                 Quitar
               </Button>
             )}
@@ -86,5 +82,6 @@ export function Teammemberslist() {
         );
       })}
     </ul>
+    </Card>
   );
 }

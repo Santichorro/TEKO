@@ -44,25 +44,25 @@ export function Editprojectpage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Cargando proyecto...</p>
-      </main>
+      </div>
     )
   }
 
   if (!project) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">Proyecto no encontrado.</p>
-      </main>
+      </div>
     )
   }
 
   if (!hasPermission(currentTeam.role, 'manage_projects')) {
     return (
-      <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+      <div>
         <p className="label opacity-60">No tienes permiso para editar este proyecto.</p>
-      </main>
+      </div>
     )
   }
 
@@ -86,7 +86,7 @@ export function Editprojectpage() {
   }
 
   return (
-    <main className="min-h-screen bg-surface text-ink p-6 sm:p-12">
+    <div>
       <h1 className="font-display text-3xl mb-1">Editar proyecto</h1>
       <p className="label opacity-60 mb-10">{currentTeam.name}</p>
 
@@ -133,6 +133,6 @@ export function Editprojectpage() {
           </div>
         </form>
       </Card>
-    </main>
+    </div>
   )
 }
