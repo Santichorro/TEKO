@@ -11,6 +11,7 @@ import { Input } from '../components/ui/Input';
 import { Teammemberslist } from '../components/Teammemberslist';
 import { Teaminvitemodal } from '../components/Teaminvitemodal';
 import { Teampendinginvitations } from '../components/Teampendinginvitations';
+import { Teamlabels } from '../components/labels/Teamlabels';
 
 function CreateTeamForm({ onCreated }: { onCreated: (teamId: string) => void }) {
   const { user } = useAuth();
@@ -114,6 +115,8 @@ export function Teampage() {
         </div>
         <Teammemberslist />
       </section>
+
+      <Teamlabels teamId={currentTeam.id} canManage={hasPermission(currentTeam.role, 'manage_projects')} />
 
       {canInvite && (
         <Teampendinginvitations teamId={currentTeam.id} refreshKey={invitationsRefreshKey} />

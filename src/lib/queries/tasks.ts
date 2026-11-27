@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import type { TaskPriority, TaskStatus, TaskWithAssignee } from '../../types/task'
+import type { TaskListItem, TaskPriority, TaskStatus, TaskWithAssignee } from '../../types/task'
 
 const TASK_FIELDS = `
   id, project_id, column_id, parent_task_id, title, description, status, priority,
@@ -8,10 +8,40 @@ const TASK_FIELDS = `
   assignee:profiles!tasks_assigned_to_fkey ( id, name, avatar_url )
 `
 
-export async function fetchProjectTasks(projectId: string): Promise<TaskWithAssignee[]> {
+/** Campos de tarea + etiquetas para listas y detalle */
+const TASK_LIST_FIELDS = `
+  ${TASK_FIELDS},
+  task_labels ( label:labels ( id, name, color ) )
+`
+
+type SubtaskStatus = { id: string; status: TaskStatus; parent_task_id: string }
+
+/**
+ * Las subtareas se traen en una consulta aparte (id, estado y padre) y se
+ * agrupan aquí: el embed de una tabla consigo misma en PostgREST es ambiguo.
+ */
+async function attachSubtasks(
+  tasks: Omit<TaskListItem, 'subtasks'>[],
+  filter: { projectId: string } | { parentId: string }
+): Promise<TaskListItem[]> {
+  let query = supabase.from('tasks').select('id, status, parent_task_id').not('parent_task_id', 'is', null)
+  query = 'projectId' in filter ? query.eq('project_id', filter.projectId) : query.eq('parent_task_id', filter.parentId)
+  const { data, error } = await query
+  if (error) throw new Error(`No se pudieron cargar las subtareas: ${error.message}`)
+
+  const byParent = new Map<string, { id: string; status: TaskStatus }[]>()
+  for (const sub of (data ?? []) as SubtaskStatus[]) {
+    const list = byParent.get(sub.parent_task_id) ?? []
+    list.push({ id: sub.id, status: sub.status })
+    byParent.set(sub.parent_task_id, list)
+  }
+  return tasks.map((t) => ({ ...t, subtasks: byParent.get(t.id) ?? [] }))
+}
+
+export async function fetchProjectTasks(projectId: string): Promise<TaskListItem[]> {
   const { data, error } = await supabase
     .from('tasks')
-    .select(TASK_FIELDS)
+    .select(TASK_LIST_FIELDS)
     .eq('project_id', projectId)
     .is('parent_task_id', null)
     .order('created_at', { ascending: false })
@@ -20,17 +50,72 @@ export async function fetchProjectTasks(projectId: string): Promise<TaskWithAssi
     throw new Error(`No se pudieron cargar las tareas: ${error.message}`)
   }
 
-  return (data ?? []) as unknown as TaskWithAssignee[]
+  const tasks = (data ?? []) as unknown as Omit<TaskListItem, 'subtasks'>[]
+  return attachSubtasks(tasks, { projectId })
 }
 
-export async function fetchTask(taskId: string): Promise<TaskWithAssignee | null> {
-  const { data, error } = await supabase.from('tasks').select(TASK_FIELDS).eq('id', taskId).maybeSingle()
+export async function fetchTask(taskId: string): Promise<TaskListItem | null> {
+  const { data, error } = await supabase.from('tasks').select(TASK_LIST_FIELDS).eq('id', taskId).maybeSingle()
 
   if (error) {
     throw new Error(`No se pudo cargar la tarea: ${error.message}`)
   }
 
-  return data as unknown as TaskWithAssignee | null
+  if (!data) return null
+  const [task] = await attachSubtasks([data as unknown as Omit<TaskListItem, 'subtasks'>], { parentId: taskId })
+  return task
+}
+
+/** Subtareas de una tarea, en el orden en que se crearon */
+export async function fetchSubtasks(parentTaskId: string): Promise<TaskWithAssignee[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(TASK_FIELDS)
+    .eq('parent_task_id', parentTaskId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    throw new Error(`No se pudieron cargar las subtareas: ${error.message}`)
+  }
+
+  return (data ?? []) as unknown as TaskWithAssignee[]
+}
+
+export async function createSubtask(
+  parent: { id: string; project_id: string },
+  createdBy: string,
+  title: string
+): Promise<void> {
+  const trimmed = title.trim()
+  if (!trimmed) throw new Error('El título de la subtarea no puede estar vacío.')
+
+  const { error } = await supabase.from('tasks').insert({
+    project_id: parent.project_id,
+    parent_task_id: parent.id,
+    title: trimmed,
+    status: 'todo',
+    priority: 'medium',
+    created_by: createdBy,
+  })
+
+  if (error) {
+    throw new Error(`No se pudo crear la subtarea: ${error.message}`)
+  }
+}
+
+/** Marca una tarea (o subtarea) como completada o la devuelve a "Por hacer" */
+export async function setTaskCompleted(taskId: string, completed: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('tasks')
+    .update({
+      status: completed ? 'completed' : 'todo',
+      completed_at: completed ? new Date().toISOString() : null,
+    })
+    .eq('id', taskId)
+
+  if (error) {
+    throw new Error(`No se pudo actualizar la subtarea: ${error.message}`)
+  }
 }
 
 export interface TaskInput {
@@ -116,10 +201,8 @@ export async function deleteTask(taskId: string): Promise<void> {
   }
 }
 
-export function groupTasksByStatus(
-  tasks: TaskWithAssignee[]
-): Record<TaskStatus, TaskWithAssignee[]> {
-  const groups: Record<TaskStatus, TaskWithAssignee[]> = {
+export function groupTasksByStatus<T extends TaskWithAssignee>(tasks: T[]): Record<TaskStatus, T[]> {
+  const groups: Record<TaskStatus, T[]> = {
     backlog: [],
     todo: [],
     in_progress: [],

@@ -1,3 +1,5 @@
+import type { Label } from './label'
+
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'completed'
 
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low'
@@ -28,4 +30,11 @@ export interface TaskWithAssignee extends Task {
     name: string
     avatar_url: string | null
   } | null
+}
+
+export interface TaskListItem extends TaskWithAssignee {
+  /** Etiquetas asignadas (tabla task_labels) */
+  task_labels: { label: Pick<Label, 'id' | 'name' | 'color'> }[]
+  /** Solo id y estado, para el contador "2/5" */
+  subtasks: Pick<Task, 'id' | 'status'>[]
 }

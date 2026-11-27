@@ -8,7 +8,8 @@ import { EmptyState } from './Emptystate'
 import { fetchProjectTasks, groupTasksByStatus } from '../../lib/queries/tasks'
 import { formatDate, isOverdue } from '../../lib/dates'
 import { TASK_PRIORITY_LABEL, TASK_STATUS_LABEL, TASK_STATUS_ORDER } from '../../lib/labels'
-import type { TaskPriority, TaskWithAssignee } from '../../types/task'
+import type { TaskListItem, TaskPriority } from '../../types/task'
+import { Labelbadge } from '../labels/Labelbadge'
 
 interface TaskslistProps {
   projectId: string
@@ -75,8 +76,9 @@ export function Taskslist({ projectId, canCreate = true }: TaskslistProps) {
   )
 }
 
-function TaskRow({ task, projectId }: { task: TaskWithAssignee; projectId: string }) {
+function TaskRow({ task, projectId }: { task: TaskListItem; projectId: string }) {
   const overdue = task.status !== 'completed' && isOverdue(task.due_date)
+  const subDone = task.subtasks.filter((s) => s.status === 'completed').length
 
   return (
     <Link to={`/proyectos/${projectId}/tareas/${task.id}`}>
@@ -86,8 +88,19 @@ function TaskRow({ task, projectId }: { task: TaskWithAssignee; projectId: strin
           <span className={`truncate ${task.status === 'completed' ? 'line-through opacity-60' : ''}`}>
             {task.title}
           </span>
+          <span className="hidden md:flex items-center gap-1 shrink-0">
+            {task.task_labels.slice(0, 3).map(({ label }) => (
+              <Labelbadge key={label.id} name={label.name} color={label.color} />
+            ))}
+            {task.task_labels.length > 3 && <span className="label opacity-60">+{task.task_labels.length - 3}</span>}
+          </span>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          {task.subtasks.length > 0 && (
+            <span className="label opacity-60" title="Subtareas completadas">
+              ☐ {subDone}/{task.subtasks.length}
+            </span>
+          )}
           {task.due_date && (
             <span className={`label ${overdue ? 'text-accent' : 'opacity-60'}`}>
               {overdue ? 'Atrasada · ' : ''}

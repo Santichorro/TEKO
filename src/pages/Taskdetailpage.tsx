@@ -8,6 +8,8 @@ import { Card } from '../components/ui/Card'
 import { ConfirmDialog } from '../components/ui/Confirmdialog'
 import { EmptyState } from '../components/ui/Emptystate'
 import { Taskform } from '../components/tasks/Taskform'
+import { Tasklabels } from '../components/tasks/Tasklabels'
+import { Subtasklist } from '../components/tasks/Subtasklist'
 import { useAuth } from '../context/Authcontext'
 import { useTeams } from '../context/Teamscontext'
 import { formatDate, isOverdue } from '../lib/dates'
@@ -160,17 +162,39 @@ export function Taskdetailpage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <h2 className="label opacity-60 mb-4">Descripción</h2>
-              {task.description ? (
-                <p className="text-sm whitespace-pre-wrap">{task.description}</p>
-              ) : (
-                <p className="text-sm opacity-50">Sin descripción.</p>
+            <div className="lg:col-span-2 flex flex-col gap-6">
+              <Card>
+                <h2 className="label opacity-60 mb-4">Descripción</h2>
+                {task.description ? (
+                  <p className="text-sm whitespace-pre-wrap">{task.description}</p>
+                ) : (
+                  <p className="text-sm opacity-50">Sin descripción.</p>
+                )}
+              </Card>
+
+              {/* Las subtareas no tienen subtareas propias (un solo nivel) */}
+              {!task.parent_task_id && (
+                <Card>
+                  <h2 className="label opacity-60 mb-4">Subtareas</h2>
+                  <Subtasklist parent={task} role={currentTeam.role} userId={user?.id} />
+                </Card>
               )}
-            </Card>
+            </div>
 
             <Card>
               <dl className="flex flex-col gap-4">
+                <div>
+                  <dt className="label opacity-60 mb-2">Etiquetas</dt>
+                  <dd>
+                    <Tasklabels
+                      taskId={task.id}
+                      projectId={projectId}
+                      teamId={currentTeam.id}
+                      assigned={task.task_labels.map((tl) => tl.label)}
+                      canEdit={canEdit}
+                    />
+                  </dd>
+                </div>
                 <div>
                   <dt className="label opacity-60">Responsable</dt>
                   <dd className="mt-1 flex items-center gap-2">
