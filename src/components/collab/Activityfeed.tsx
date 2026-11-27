@@ -6,19 +6,19 @@ import type { ActivityEntry } from '../../types/activity'
 
 interface ActivityfeedProps {
   entries: ActivityEntry[]
-  /** Vista de proyecto: muestra el nombre de la tarea y enlaza a ella */
-  projectId?: string
+  /** Vista de proyecto o dashboard: muestra el nombre de la tarea y enlaza a ella */
+  withTask?: boolean
   emptyText?: string
 }
 
-export function Activityfeed({ entries, projectId, emptyText = 'Sin actividad todavía.' }: ActivityfeedProps) {
+export function Activityfeed({ entries, withTask = false, emptyText = 'Sin actividad todavía.' }: ActivityfeedProps) {
   if (entries.length === 0) return <p className="text-sm opacity-50">{emptyText}</p>
 
   return (
     <ol className="flex flex-col">
       {entries.map((entry) => {
         const who = entry.actor?.name ?? 'Alguien'
-        const text = describeActivity(entry, !!projectId)
+        const text = describeActivity(entry, withTask)
         return (
           <li key={entry.id} className="flex gap-3 py-2.5 border-b-2 border-ink/10 last:border-b-0">
             <Avatar name={who} size="sm" />
@@ -30,10 +30,10 @@ export function Activityfeed({ entries, projectId, emptyText = 'Sin actividad to
                 <time dateTime={entry.created_at} title={new Date(entry.created_at).toLocaleString('es-CO')}>
                   {formatRelative(entry.created_at)}
                 </time>
-                {projectId && entry.task_id && (
+                {withTask && entry.task_id && entry.project_id && (
                   <>
                     {' · '}
-                    <Link to={`/proyectos/${projectId}/tareas/${entry.task_id}`} className="underline">
+                    <Link to={`/proyectos/${entry.project_id}/tareas/${entry.task_id}`} className="underline">
                       Ver tarea
                     </Link>
                   </>

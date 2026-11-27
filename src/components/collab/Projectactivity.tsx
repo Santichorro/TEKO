@@ -10,5 +10,5 @@ export function Projectactivity({ projectId }: { projectId: string }) {
 
   if (isLoading) return <p className="label opacity-60">Cargando actividad…</p>
   if (error) return <p className="label text-accent">{error.message}</p>
-  return <Activityfeed entries={data} projectId={projectId} emptyText="Aún no hay actividad en este proyecto." />
+  return <Activityfeed entries={data} withTask emptyText="Aún no hay actividad en este proyecto." />
 }
